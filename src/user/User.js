@@ -57,6 +57,51 @@ module.exports = {
       }
     );
   },
+  loginWithPhoneAndPassword(selector, password, callback) {
+    if (typeof selector === 'string') {
+      selector = {phone: selector};
+    }
+
+    this._startLoggingIn();
+    call("login", {
+        user: selector,
+        password: hashPassword(password)
+    }, (err, result)=>{
+      this._endLoggingIn();
+
+      this._handleLoginCallback(err, result);
+
+      typeof callback == 'function' && callback(err);
+    });
+  },
+
+  requestPhoneVerification(phone, callback) {
+    if (!phone)
+      throw new Error("Must pass phone");
+    call("requestPhoneVerification", phone, callback);
+  },
+
+  verifyPhone(phone, code, newPassword, callback) {
+    this._startLoggingIn();
+    var hashedPassword;
+
+    if (newPassword) {
+        // If didn't gave newPassword and only callback was given
+        if (typeof(newPassword) === 'function') {
+            callback = newPassword;
+        } else {
+            check(newPassword, String);
+            hashedPassword = Accounts._hashPassword(newPassword);
+        }
+    }
+    call("verifyPhone", phone, code, hashedPassword, (err, result) => {
+      this._endLoggingIn();
+
+      this._handleLoginCallback(err, result);
+
+      typeof callback == 'function' && callback(err);
+    });
+  },
   logoutOtherClients(callback = () => {}) {
     call('getNewToken', (err, res) => {
       if (err) return callback(err);
